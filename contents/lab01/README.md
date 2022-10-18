@@ -2,6 +2,10 @@
 
 ここでは、Azure ポータルで Azure Communication Services のリソースを作成してサンプル アプリケーションをデプロイして Azure Communication Services の機能を体験します。
 
+デプロイするサンプルアプリケーションは以下のようなグループ通話が可能なアプリケーションになります。
+
+![](images/2022-10-18-17-04-58.png)
+
 ## Azure Communication Services のリソースの作成とサンプル アプリのデプロイ
 
 1. [Azure ポータル](https://portal.azure.com) を開いてサインインを行います。
