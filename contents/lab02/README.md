@@ -117,7 +117,7 @@ export declare type AzureCommunicationCallWithChatAdapterArgs = {
 
 src/App.tsx を開いて内容を以下のように変更します。
 
-```ts:src/App.tsx
+```ts
 import { useState } from 'react';
 import './App.css';
 import {
@@ -141,7 +141,7 @@ function App() {
 
   return (
     <div className="content">
-      <FluentThemeProvider fluentTheme={darkTheme}>
+      <FluentThemeProvider>
         <LocalizationProvider locale={COMPONENT_LOCALE_JA_JP}>
           {!!callWithCahtAdapterArgs ? callWithChat() : setup()}
         </LocalizationProvider>
@@ -151,10 +151,26 @@ function App() {
 }
 
 export default App;
+```
 
+画面いっぱいにコンテンツを表示するために src/App.css を開いて以下の内容に変更します。
+
+```css
+.content {
+  width: 100vw;
+  height: 100vh;
+}
 ```
 
 `AzureCommunicationCallWithChatAdapterArgs` の有無で表示画面を変更しています。
+
+> **Note**
+> `FluentThemeProvider` は fluent-ui のコンポーネントのテーマを決めるためのコンポーネントです。ここでは上記コードではデフォルト値を使用しているためライトテーマになります。パラメーターに `fluentTheme={darkTheme}` を指定することでダークテーマにすることも可能です。
+
+> **Note**
+> `LocalizationProvider` は Azure Communication Services の UI ライブラリの表示言語を切り替えるためのコンポーネントです。上記のコードのように `locale={COMPONENT_LOCALE_JA_JP}' を指定することで日本語表示にすることが出来ます。指定しない場合は英語表記になります。
+
+
 
 ## メモ
 
