@@ -39,15 +39,132 @@ Azure Communication Services の UI ライブラリを使用して通話やチ�
 
 [Support React 18](https://github.com/Azure/communication-ui-library/issues/1900)
 
-1. 以下のコマンドを実行して
+1. 以下のコマンドを実行して依存関係を v17 のものに変更します。
+   ```
+   npm install --save react@17.0.2 react-dom@17.0.2 @testing-library/react@12.1.5
+   ```
+2. src/index.tsx を開き以下の内容で置き換えて保存します。
+   ```ts
+   import React from "react";
+   import ReactDOM from "react-dom";
+   import "./index.css";
+   import App from "./App";
+   import reportWebVitals from "./reportWebVitals";
+   
+   ReactDOM.render(
+     <React.StrictMode>
+       <App />
+     </React.StrictMode>,
+     document.getElementById("root")
+   );
+   
+   // If you want to start measuring performance in your app, pass a function
+   // to log results (for example: reportWebVitals(console.log))
+   // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+   reportWebVitals();
+   ```
+3. `npm start` を実行してビルド エラーが発生せずに React のアプリが起動することを確認してください。
+
+以上で React v17 へのダウングレードの手順は終了です。
+
+## Azure Communication Services のライブラリの追加
+
+1. 以下のコマンドを実行してライブラリをプロジェクトに追加してください。1行ずつ実行をおこないエラーが発生していないことを確認しながら実行をしてください。警告はいくつか発生しますがエラーが発生していなければ大丈夫です。
+   ```
+   npm install @azure/communication-react --legacy-peer-deps
+   npm install @azure/communication-calling@1.4.4 --legacy-peer-deps
+   npm install @azure/communication-chat@1.2.0 --legacy-peer-deps
+   npm install @azure/communication-identity --legacy-peer-deps
+   ```
+   
+   参考: 問題ない場合の出力例
+   ```
+   > npm install @azure/communication-react --legacy-peer-deps
+   npm WARN config global `--global`, `--local` are deprecated. Use `--location=global` instead.
+   npm WARN deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.  
+   
+   added 116 packages, and audited 1546 packages in 41s
+   
+   217 packages are looking for funding
+     run `npm fund` for details
+   
+   6 high severity vulnerabilities
+   
+   To address all issues (including breaking changes), run:
+     npm audit fix --force
+   
+   Run `npm audit` for details.
+   ```
+
+
+## 会議へ参加するための情報の作成画面を作る
+
+今回作成するアプリケーションは、Azure Communication Services のユーザー ID の作成やトークンの取得、チャットスレッドの作成から参加者の追加までをクライアント サイドで制御を行うアプリケーションになります。
+
+チャット付きの会議に参加するための UI として `CallWithChatComposite` というコンポーネントを使用します。このコンポーネントは `AzureCommunicationCallWithChatAdapterArgs` という以下のように定義されている型を使って会議に参加して通話したりチャットをしたりすることが出来る完全な UI を持ったコンポーネントになります。
+
+```ts
+export declare type AzureCommunicationCallWithChatAdapterArgs = {
+    endpoint: string;
+    userId: CommunicationUserIdentifier;
+    displayName: string;
+    credential: CommunicationTokenCredential;
+    locator: CallAndChatLocator | TeamsMeetingLinkLocator;
+};
+```
+
+まず `AzureCommunicationCallWithChatAdapterArgs` を作るために必用な情報を設定するための画面と通話を行うための画面を出しわける大枠を src/App.tsx に作成します。
+
+src/App.tsx を開いて内容を以下のように変更します。
+
+```ts:src/App.tsx
+import { useState } from 'react';
+import './App.css';
+import {
+  AzureCommunicationCallWithChatAdapterArgs,
+  COMPONENT_LOCALE_JA_JP,
+  darkTheme,
+  FluentThemeProvider,
+  LocalizationProvider
+} from '@azure/communication-react';
+
+function App() {
+  const [callWithCahtAdapterArgs, setCallWithChatAdapterArgs] = useState<AzureCommunicationCallWithChatAdapterArgs>();
+
+  const callWithChat = () => {
+    return <div>ここに CallWithChatComposite を使った画面を定義する</div>;
+  }
+
+  const setup = () => {
+    return <div>ここに AzureCommunicationCallWithChatAdapterArgs を作るための情報を入力する画面を定義する</div>;
+  }
+
+  return (
+    <div className="content">
+      <FluentThemeProvider fluentTheme={darkTheme}>
+        <LocalizationProvider locale={COMPONENT_LOCALE_JA_JP}>
+          {!!callWithCahtAdapterArgs ? callWithChat() : setup()}
+        </LocalizationProvider>
+      </FluentThemeProvider>
+    </div>
+  );
+}
+
+export default App;
+
+```
+
+`AzureCommunicationCallWithChatAdapterArgs` の有無で表示画面を変更しています。
+
+## メモ
 
 memo ダウングレードの方法
     https://qiita.com/kabosu3d/items/674e287dd068322ca7cf
 
 memo インストールするライブラリ
-    "@azure/communication-calling": "^1.4.4",
-    "@azure/communication-chat": "^1.2.0",
+    "@azure/communication-calling": "^1.4.4", x
+    "@azure/communication-chat": "^1.2.0", x
     "@azure/communication-common": "^2.1.0",
     "@azure/communication-identity": "^1.1.0",
-    "@azure/communication-react": "^1.3.1",
+    "@azure/communication-react": "^1.3.1", x
     "@fluentui/react": "^8.97.2",
