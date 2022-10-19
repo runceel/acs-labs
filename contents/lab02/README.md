@@ -113,6 +113,8 @@ export declare type AzureCommunicationCallWithChatAdapterArgs = {
 };
 ```
 
+### 全体の大枠を作成する
+
 まず `AzureCommunicationCallWithChatAdapterArgs` を作るために必用な情報を設定するための画面と通話を行うための画面を出しわける大枠を src/App.tsx に作成します。
 
 src/App.tsx を開いて内容を以下のように変更します。
@@ -165,22 +167,155 @@ export default App;
 `AzureCommunicationCallWithChatAdapterArgs` の有無で表示画面を変更しています。
 
 > **Note**
+> 
 > `FluentThemeProvider` は fluent-ui のコンポーネントのテーマを決めるためのコンポーネントです。ここでは上記コードではデフォルト値を使用しているためライトテーマになります。パラメーターに `fluentTheme={darkTheme}` を指定することでダークテーマにすることも可能です。
 
 > **Note**
+> 
 > `LocalizationProvider` は Azure Communication Services の UI ライブラリの表示言語を切り替えるためのコンポーネントです。上記のコードのように `locale={COMPONENT_LOCALE_JA_JP}' を指定することで日本語表示にすることが出来ます。指定しない場合は英語表記になります。
 
+`npm start` をして画面を表示すると以下のようになります。
+
+![](images/2022-10-19-14-45-19.png)
+
+### Azure Communication Services のキーの設定
+
+Azure Communication Services にアクセスするために必要なキーの情報をポータルから取得します。Azure ポータルの Azure Communication Services のリソースのキーを開いてエンドポイントと接続文字列をコピーします。
+
+![](images/2022-10-19-17-22-36.png)
+
+.env.local というファイルをアプリのルートフォルダー (ここの手順と同じパスに作成している場合は c:\labs\acs-sample-app) に作成して以下の内容に編集してください。
+
+```
+REACT_APP_ACS_ENDPOINT=先ほどコピーしたエンドポイントの値
+REACT_APP_ACS_CONNECTION_STRING=先ほどコピーした接続文字列の値
+```
+
+### 会議へ参加するための情報を入力するためのコンポーネントの定義
+
+src/components/AcsSetup.tsx というファイルと src/components/AcsSetup.css というファイルを作成します。
+
+#### ユーザー ID とアクセス トークンの取得
+
+まず、Azure Communication Services のユーザー ID とアクセス トークンを取得する処理を作成します。
+
+ユーザー ID とトークンを取得するには `CommunicationIdentityClient` クラスを Azure Communication Services の接続文字列を使って作成を行い `createUserAndToken` メソッドを使うことで行えます。引数には `['chat', 'voip']` のようにスコープを指定します。
+
+src/components/AcsSetup.tsx を開いて以下のように変更します。
+
+```tsx
+import { CommunicationIdentityClient } from "@azure/communication-identity";
+import { AzureCommunicationCallWithChatAdapterArgs } from "@azure/communication-react";
+import { useEffect, useState } from "react";
+import { AzureCommunicationTokenCredential } from "@azure/communication-common";
+import "./AcsSetup.css";
+
+type AcsSetupProperties = {
+    // この画面で作成した AzureCommunicationCallWithChatAdapterArgs を渡すためのコールバック
+    setCallWithChatAdapterArgs: (arg: AzureCommunicationCallWithChatAdapterArgs) => void,
+}
+
+function AcsSetup({ setCallWithChatAdapterArgs }: AcsSetupProperties) {
+    const {
+        userId,
+        token,
+    } = useAcsSetup();
+
+    return (
+        <div className="container">
+            <h3>Azure Communication Services の情報設定</h3>
+            <label>ユーザー ID</label>
+            <span className="wrap-text">{userId ?? 'ユーザー ID を取得中'}</span>
+            <label>トークン</label>
+            <span className="wrap-text">{token ?? 'トークンを取得中'}</span>
+        </div>
+    );
+}
+
+function useAcsSetup() {
+    // ユーザー ID とトークン
+    const [userId, setUserId] = useState('');
+    const [token, setToken] = useState('');
+    // 後で使用するクレデンシャル
+    const [credential, setCredential] = useState<AzureCommunicationTokenCredential>();
+
+    useEffect(() => {
+        // ユーザー ID とトークンの取得
+        (async () => {
+            const client = new CommunicationIdentityClient(process.env.REACT_APP_ACS_CONNECTION_STRING!);
+            const { user: { communicationUserId }, token } = await client.createUserAndToken(['chat', 'voip']);
+            setUserId(communicationUserId);
+            setToken(token);
+            setCredential(new AzureCommunicationTokenCredential(token));
+        })();
+    }, []);
+
+    return {
+        userId,
+        token,
+    };
+}
+
+export default AcsSetup;
+```
+
+src/components/AcsSetup.css を開いて以下のように変更します。
+
+```css
+.container {
+    min-height: 100vh;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container > form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    align-items: center;
+    width: 90vw;
+}
+
+.container label {
+    display: block;
+    font-weight: bold;
+}
+
+.container .wrap-text {
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+```
+
+そして src/App.tsx を開いて 18 行目にある setup の定義を変更して作成した AcsSetup コンポーネントを表示するように変更します。
+
+```tsx
+  const setup = () => {
+    return <AcsSetup setCallWithChatAdapterArgs={setCallWithChatAdapterArgs} />;
+  }
+```
+
+この状態で実行すると、以下のように Azure Communication Service のユーザー ID とトークンが取得され画面に表示されます。
+
+![](images/2022-10-19-18-19-47.png)
+
+#### グループ通話の作成
+
+#### 既存のグループ通話の情報の設定
+
+#### Teams 会議情報の設定
 
 
-## メモ
+### 会議への参加 UI の作成
 
-memo ダウングレードの方法
-    https://qiita.com/kabosu3d/items/674e287dd068322ca7cf
+### 動作確認
 
-memo インストールするライブラリ
-    "@azure/communication-calling": "^1.4.4", x
-    "@azure/communication-chat": "^1.2.0", x
-    "@azure/communication-common": "^2.1.0",
-    "@azure/communication-identity": "^1.1.0",
-    "@azure/communication-react": "^1.3.1", x
-    "@fluentui/react": "^8.97.2",
+#### グループ通話の動作確認
+
+
+#### Teams 会議への参加の動作確認 (オプション)
