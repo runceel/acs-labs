@@ -96,6 +96,17 @@ Azure Communication Services の UI ライブラリを使用して通話やチ�
    Run `npm audit` for details.
    ```
 
+> **WARNING** ソースコードを記載する上での注意点
+> 
+> コード内で `useState` や `fromFlatCommunicationIdentifier` などの各種関数などを使用する場合には基本的に事前に `import` が必用になります。この `import` は Visual Studio Code などのプログラムを書くことを前提としてエディタの多くでは自動的に補間する機能を持っています。`import` がされていない機能の場合は、関数名などを入力して `Ctrl + Space` をすることで以下のように `import` を追加する選択肢が表示されます。
+> 
+> ![](images/2022-10-20-12-26-51.png)
+> 
+> 一部、表示されないものもありますが、そのようなものに関しては手順のなかで `import` を追加するように記載していますが、そうでない場合はエディタの自動入力によって `import` をすることを想定しているため手順内に明示していないので注意してください。
+> 
+> 以下のように名前がみつからないエラーが表示される場合は上記手順で `import` を追加するかタイプミスをしていないか確認してください。
+> 
+> ![](images/2022-10-20-12-28-15.png)
 
 ## 会議へ参加するための情報の作成画面を作る
 
@@ -216,23 +227,6 @@ type AcsSetupProperties = {
 }
 
 function AcsSetup({ setCallWithChatAdapterArgs }: AcsSetupProperties) {
-    const {
-        userId,
-        token,
-    } = useAcsSetup();
-
-    return (
-        <div className="container">
-            <h3>Azure Communication Services の情報設定</h3>
-            <label>ユーザー ID</label>
-            <span className="wrap-text">{userId ?? 'ユーザー ID を取得中'}</span>
-            <label>トークン</label>
-            <span className="wrap-text">{token ?? 'トークンを取得中'}</span>
-        </div>
-    );
-}
-
-function useAcsSetup() {
     // ユーザー ID とトークン
     const [userId, setUserId] = useState('');
     const [token, setToken] = useState('');
@@ -250,10 +244,15 @@ function useAcsSetup() {
         })();
     }, []);
 
-    return {
-        userId,
-        token,
-    };
+    return (
+        <div className="container">
+            <h3>Azure Communication Services の情報設定</h3>
+            <label>ユーザー ID</label>
+            <span className="wrap-text">{userId ?? 'ユーザー ID を取得中'}</span>
+            <label>トークン</label>
+            <span className="wrap-text">{token ?? 'トークンを取得中'}</span>
+        </div>
+    );
 }
 
 export default AcsSetup;
@@ -304,7 +303,196 @@ src/components/AcsSetup.css を開いて以下のように変更します。
 
 ![](images/2022-10-19-18-19-47.png)
 
+ターミナルで `Ctrl + C` を押して開発用サーバーを停止してください。
+#### 表示名の設定
+
+グループ通話や Teams 会議に参加する際の表示名を設定できるようにします。表示名を保存しておくための `displayName` という変数を `useState` を使用して追加します。
+src/components/AcsSetup.tsx の `AcsSetup` 関数の先頭の `useState` の最後に以下の 1 行を追加します。
+
+```tsx
+// 表示名
+const [displayName, setDisplayName] useState('');
+```
+
+画面作成に使用するコンポーネントを `import` で追加します。ファイルの先頭の `import` 文に以下の 1 行を追加してください。
+
+```tsx
+import { DefaultButton, PrimaryButton, TextField } from "@fluentui/react";
+```
+
+そして `AcsSetup` の `return` 文に `form` や表示名の入力用の `TextField` を追加します。`return` 文の手前に `form` の `onSubmit` 用の関数も追加して `return` 文を以下のように変更します。
+
+```tsx
+const submit = (e: FormEvent) => {
+    e.preventDefault();
+    // 最後に、ここに AzureCommunicationCallWithChatAdapterArgs を作成する処理を追加します。
+};
+
+return (
+    <div className="container">
+        <h3>Azure Communication Services の情報設定</h3>
+        <label>ユーザー ID</label>
+        <span className="wrap-text">{userId ?? 'ユーザー ID を取得中'}</span>
+        <label>トークン</label>
+        <span className="wrap-text">{token ?? 'トークンを取得中'}</span>
+        <form onSubmit={submit}>
+            <TextField
+                label="表示名"
+                className="input"
+                value={displayName}
+                onChange={(e, newValue) => setDisplayName(newValue ?? '')} />
+        </form>
+    </div>
+);
+```
+
+src/components/AcsSetup.css に以下の定義を追加します。
+
+```css
+form .input {
+  width: 100%;
+}
+```
+
+`npm start` を実行して、以下のような画面が表示されることを確認してください。
+
+![](images/2022-10-20-11-39-40.png)
+
 #### グループ通話の作成
+
+次に、Azure Communication Services のグループ通話とチャット スレッドを作成して参加するユーザーを追加する機能を作成します。Azure Communication Services のグループ通話は会議の ID を知っているユーザーは参加できますが、チャット スレッドはチャット スレッドを作ったユーザー ID のトークンで参加者を指定する必要があります。そのためチャット付きのグループ通話を行う場合はチャット スレッドにグループ通話に参加するユーザーを追加する必要があります。
+
+グループ通話は UUID を指定することで作成が出来ます。UUID を作成するために [uuid](https://www.npmjs.com/package/uuid) を npm からインストールをします。以下のコマンドを実行してください。
+
+```
+npm install uuid --legacy-peer-deps
+npm install --save-dev @types/uuid --legacy-peer-deps
+```
+
+src/components/AcsSetup.tsx の import に以下の 1 行を追加します。uuid を生成するための機能を追加をしています。
+
+```tsx
+import { v4 as uuidv4 } from 'uuid';
+```
+
+src/components/AcsSetup.tsx の `AcsSetup` 関数の先頭にある `useState` に以下の定義を追加します。
+
+```tsx
+// チャットのトピック
+const [topic, setTopic] = useState('');
+// チャットのスレッド ID
+const [threadId, setThreadId] = useState('');
+// グループ通話の ID
+const [groupId, setGroupId] = useState('');
+```
+
+`form` に入力項目とチャット スレッドを作成するボタンと、作成されたグループ通話の ID やスレッド ID を表示する場所も作成します。`displayName` の `TextField` の下に以下のコードを追加します。
+
+```tsx
+<div className="meeting-info">
+    <div>
+        <TextField
+            label="トピック"
+            className="input"
+            value={topic}
+            onChange={(e, newValue) => setTopic(newValue ?? '')} />
+        <DefaultButton
+            text="会議を作成"
+            disabled={!topic || !displayName}
+            onClick={() => createGroupMeeting()} />
+    </div>
+</div>
+<div>
+    <h4>参加会議情報</h4>
+    {!!groupId ? 
+        (<>
+            <div>グループ ID</div>
+            <span className="wrap-text">{groupId}</span>
+            <div>チャット スレッド ID</div>
+            <span className="wrap-text">{threadId}</span>
+        </>) : 
+        (<span>参加する会議情報がありません。</span>)}
+</div>
+```
+
+会議を作成するためのボタンで呼んでいる `createGroupMeeting` 関数を以下の内容で `submit` 関数の前に追加します。
+
+```tsx
+const createGroupMeeting = async () => {
+    // 必用な情報がそろっていない場合は何もしない
+    if (!credential) return;
+    if (!userId) return;
+    if (!displayName) return;
+    if (!topic) return;
+
+    const client = new ChatClient(process.env.REACT_APP_ACS_ENDPOINT!, credential);
+    // トピックを指定して、参加者が自分のみのチャットスレッドを作成
+    const result = await client.createChatThread(
+        { topic, },
+        {
+            participants: [
+                { id: fromFlatCommunicationIdentifier(userId), displayName },
+            ]
+        },
+    );
+
+    // チャットスレッドが作成できたらグループIDや作成されたスレッドIDを設定
+    if (!!result.chatThread) {
+        setGroupId(uuidv4());
+        setThreadId(result.chatThread.id);
+    } else {
+        setGroupId('');
+        setThreadId('');
+    }
+};
+```
+
+ここまでの状態で画面は以下のようになります。表示名とトピックを入力して会議を作成ボタンを押すと以下のようにグループ IDとチャット スレッド IDが表示されます。
+
+![](images/2022-10-20-12-09-27.png)
+
+続けて、チャット スレッドにユーザーを追加する処理を作成します。会議を作成ボタンの下にチャットスレッドにユーザーを追加するためのユーザー ID の入力欄とボタンを追加します。最初にチャット スレッドに追加するユーザーのユーザー ID を保持するための変数を `AcsSetup` 関数の `useState` を呼び出している箇所に追加します。
+
+```tsx
+// チャットスレッドに追加するユーザー ID
+const [additionalParticipantUserId, setAdditionalParticipantUserId] = useState('');
+```
+
+会議を作成ボタンの下に以下のコードを追加します。
+
+```tsx
+<TextField
+    label="会議に追加するユーザーの ID"
+    value={additionalParticipantUserId}
+    onChange={(e, newValue) => setAdditionalParticipantUserId(newValue ?? '')} />
+<DefaultButton
+    text="ユーザーを追加"
+    disabled={!threadId || !additionalParticipantUserId}
+    onClick={() => addParticipantToChatThread()} />
+```
+
+`submit` 関数の前に `addParticipantToChatThread` 関数を以下のように追加します。
+
+```ts
+const addParticipantToChatThread = async () => {
+    // 必用な情報がそろっていない場合は何もしない
+    if (!credential) return;
+    if (!threadId) return;
+    if (!additionalParticipantUserId) return;
+
+    // チャットのスレッドにユーザーを追加する
+    const client = new ChatClient(process.env.REACT_APP_ACS_ENDPOINT!, credential);
+    const chatThreadClient = client.getChatThreadClient(threadId);
+    await chatThreadClient.addParticipants({
+        participants: [
+            { id: fromFlatCommunicationIdentifier(additionalParticipantUserId) },
+        ],
+    });
+
+    setAdditionalParticipantUserId('');
+};
+```
+
 
 #### 既存のグループ通話の情報の設定
 
