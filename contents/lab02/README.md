@@ -391,6 +391,7 @@ const [groupId, setGroupId] = useState('');
 ```tsx
 <div className="meeting-info">
     <div>
+        <h4>新しい会議を作成</h4>
         <TextField
             label="トピック"
             className="input"
@@ -447,9 +448,9 @@ const createGroupMeeting = async () => {
 };
 ```
 
-ここまでの状態で画面は以下のようになります。表示名とトピックを入力して会議を作成ボタンを押すと以下のようにグループ IDとチャット スレッド IDが表示されます。
+ここまでの状態で画面は以下のようになります。表示名とトピックを入力して会議を作成ボタンを押すと以下のようにグループ IDとチャット スレッド ID が表示されます。
 
-![](images/2022-10-20-12-09-27.png)
+![](images/2022-10-20-13-40-37.png)
 
 続けて、チャット スレッドにユーザーを追加する処理を作成します。会議を作成ボタンの下にチャットスレッドにユーザーを追加するためのユーザー ID の入力欄とボタンを追加します。最初にチャット スレッドに追加するユーザーのユーザー ID を保持するための変数を `AcsSetup` 関数の `useState` を呼び出している箇所に追加します。
 
@@ -493,17 +494,172 @@ const addParticipantToChatThread = async () => {
 };
 ```
 
+この状態で動作させると、会議の作成後にユーザーを追加出来るようになります。追加対象のユーザー ID は、もう 1 つブラウザーを起動して http://localhost:3000 を開いて取得してください。以下の手順で動作確認が行えます。
+
+1. `npm start` をするか、既に開発サーバーが起動している場合は http://localhost:3000 をブラウザーで開く
+2. 表示名とトピックを入力して「会議を作成」ボタンを押す
+3. 参加会議情報が表示されたのを確認して、別のブラウザーを起動して http://localhost:3000 を開く
+4. 新しく開いたブラウザーに表示されたユーザー ID をコピーする
+5. 元のブラウザーに戻り会議に追加するユーザーの IDに先ほどコピーしたユーザー ID を張り付ける
+6. 「ユーザーを追加」ボタンを押すとユーザーが追加され会議に追加するユーザーの ID が空欄に戻る
 
 #### 既存のグループ通話の情報の設定
 
-#### Teams 会議情報の設定
+ここまでの手順で、新しいグループ通話用の ID とチャット スレッドを作成してチャット スレッドにユーザーを追加しました。ここでは、既存のグループ通話とチャット スレッドに参加するための設定を行う機能を作成します。
 
+既存のグループ通話の ID とチャット スレッド ID を入力するための値を保持する変数を `AcsSetup` 関数の先頭の `useState` を書いている箇所の末尾に以下のコードを追加します。
+
+```tsx
+// 既存のグループ通話の ID 入力用
+const [groupIdToJoin, setGroupIdToJoin] = useState('');
+// 既存のチャット スレッドの ID 入力用
+const [threadIdToJoin, setThreadIdToJoin] = useState('');
+```
+
+そして `className` が `meeting-info` になっている `div` タグ内に、もう 1 つ `div` タグを追加します。
+
+```tsx
+<div>
+    <h4>既存の会議情報を入力</h4>
+    <TextField
+        label="グループ ID または Teams 会議リンク"
+        value={groupIdToJoin}
+        onChange={(e, newValue) => setGroupIdToJoin(newValue ?? '')} />
+    <TextField
+        label="チャット スレッド ID"
+        value={threadIdToJoin}
+        onChange={(e, newValue) => setThreadIdToJoin(newValue ?? '')} />
+    <DefaultButton
+        text="参加する会議情報を設定"
+        disabled={!groupIdToJoin}
+        onClick={() => {
+            setGroupId(groupIdToJoin);
+            setThreadId(threadIdToJoin);
+            setGroupIdToJoin('');
+            setThreadIdToJoin('');
+        }} />                            
+</div>
+```
+
+見た目を整えるために src/components/AcsSetup.css を開いて以下のスタイルの定義を追加します。
+
+```css
+.meeting-info {
+    width: 100%;
+    display:flex;
+    gap: 1rem;
+}
+
+.meeting-info > div {
+    flex: 1;
+    max-width: 50%;
+}
+```
+
+この状態でアプリケーションを実行して表示すると以下のような見た目になります。既存の会議情報を入力の欄に、別のブラウザーで生成したグループ ID とチャット スレッド ID を入力してボタンを押すことで別のブラウザーで生成した会議の情報を設定することが出来るようになりました。
+
+![](images/2022-10-20-13-43-15.png)
+
+#### AzureCommunicationCallWithChatAdapterArgs の作成
+
+ここまでの手順で Azure Communication Services 内のグループ通話やチャットに参加するために必用な情報が設定できる画面が出来たので `AzureCommunicationCallWithChatAdapterArgs` を作成する処理を追加します。
+
+`CommunicationUserIdentifier` を `import` するために src/components/AcsSetup.tsx の先頭の `import` 文から `@azure/communication-common` から読み込んでいる箇所を探して以下のように `CommunicationUserIdentifier` を追加してください。
+
+```tsx
+import { CommunicationUserIdentifier, AzureCommunicationTokenCredential } from "@azure/communication-common";
+```
+
+そして `submit` 関数を以下のように更新します。
+
+```tsx
+const submit = (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!userId) return;
+    if (!displayName) return;
+    if (!credential) return;
+    if (!groupId) return;
+
+    const locator = groupId.startsWith("https://") ?
+        // groupId が https:// で始まる場合は Teams 会議リンクとして扱う
+        { meetingLink: groupId } as TeamsMeetingLinkLocator :
+        // そうじゃない場合は Azure Communication Services の通話とチャットとして扱う
+        { callLocator: { groupId }, chatThreadId: threadId } as CallAndChatLocator;
+    
+    setCallWithChatAdapterArgs({
+        endpoint: process.env.REACT_APP_ACS_ENDPOINT!,
+        userId: fromFlatCommunicationIdentifier(userId) as CommunicationUserIdentifier,
+        displayName,
+        credential,
+        locator,
+    });
+};
+```
+
+最後に `form` タグの最後に `submit` 用のボタンのタグを以下のように追加します。
+
+```tsx
+<PrimaryButton text="会議への参加" type="submit" disabled={!groupId} />
+```
+
+この状態で実行をして以下の手順を実行します。
+
+1. 表示名に任意の値を入力する。
+2. トピックに任意の値を入力する。
+3. 「会議を作成」ボタンを選択する。
+4. 参加会議情報に以下のようにグループ IDとチャット スレッド IDが表示されることを確認する。
+   ![](images/2022-10-20-15-40-22.png)
+5. 「会議への参加」ボタンを選択する。
+6. 画面が切り替わって以下のような表示になることを確認する。
+   ![](images/2022-10-20-15-41-07.png)
 
 ### 会議への参加 UI の作成
 
+ここまでの手順でグループ通話やチャットを行うために必用な下準備は完了しました。最後に Azure Communication Services の UI ライブラリを使って会議参加前から会議中の UI を作成します。
+
+src/App.tsx を開いて `callWithChat` 関数を以下の内容で置き換えます。
+
+```tsx
+const adapter = useAzureCommunicationCallWithChatAdapter(callWithCahtAdapterArgs ?? {});
+const callWithChat = () => {
+  if (!!adapter) {
+    return <CallWithChatComposite adapter={adapter} />;
+  }
+  return <h3>初期化中...</h3>;
+}
+```
+
+`AzureCommunicationCallWithChatAdapterArgs` を元に `useAzureCommunicationCallWithChatAdapter` を使って `adapter` を作成します。この `adapter` を UI ライブラリの `CallWithChatComposite` に渡すことで会議用の UI が表示されます。
+
 ### 動作確認
+
+以上でコーディングは完了です。
 
 #### グループ通話の動作確認
 
+Azure Communication Services のグループ通話の動作は以下の手順で確認できます。
+
+1. http://localhost:3000 を 2 つのブラウザーで開いて左右に並べてください
+2. 左側のブラウザーで以下の操作を行います
+   1. 表示名に「Test user 1」と入力
+   2. トピックに「Test 用の会議」と入力
+   3. 「会議を作成」ボタンを選択
+   4. 以下のような表示になっていることを確認
+      ![](images/2022-10-20-15-53-58.png)
+3. 右側のブラウザーで以下の操作を行います
+   1. 表示名に「Test user 2」と入力
+   2. 既存の会議情報を入力のグループ ID または Teams 会議リンクに左側のブラウザーに表示されているグループ ID を入力
+   3. その下のチャット スレッド IDに左側のブラウザーに表示されているチャット スレッド ID を入力
+   4. 「参加する会議情報を設定」ボタンを選択
+4. 左側のブラウザーで以下の操作を行います
+   1. 会議に追加するユーザーの ID に右側のブラウザーに表示されているユーザー ID を入力
+   2. 「ユーザーを追加」ボタンを選択して会議に追加するユーザーの ID が消えたことを確認
+5. 両方のブラウザーで「会議への参加」ボタンを押して次の画面でデバイスの選択と **マイクをミュート** にして「Start call」ボタンを選択
+   - 初めて表示する場合はマイクやカメラへのアクセスが求められるので許可を選択してください
+6. グループ通話が開始されるので、チャットや画面共有などが動くことを確認してください
+   ![](images/2022-10-20-16-01-22.png)
+7. マイクの動作を確認する場合は、音声の出力はかならずイヤフォンやヘッドフォンで行いハウリングが起きないように注意してください
 
 #### Teams 会議への参加の動作確認 (オプション)
+
