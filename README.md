@@ -4,6 +4,8 @@
 
 ## ラボ 01: Azure Communication Services を作成して体験をする
 
+想定実施時間: 20 分
+
 Azure Communication Services のリソースを Azure 上に作成してサンプル アプリケーションのデプロイを行います。
 プログラミングなどは行わないため、Azure サブスクリプションがあれば実施可能です。
 
