@@ -1,0 +1,43 @@
+.container {
+    min-height: 100vh;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container > form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    align-items: center;
+    width: 90vw;
+}
+
+.container label {
+    display: block;
+    font-weight: bold;
+}
+
+.container .wrap-text {
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+form .input {
+    width: 100%;
+}
+
+.meeting-info {
+    width: 100%;
+    display:flex;
+    gap: 1rem;
+}
+
+.meeting-info > div {
+    flex: 1;
+    max-width: 50%;
+}
