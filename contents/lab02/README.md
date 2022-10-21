@@ -651,6 +651,10 @@ const submit = (e: FormEvent) => {
    
    ![](images/2022-10-20-15-41-07.png)
 
+この時点での AcsSetup.tsx は以下のようになっています。
+
+- [AcsSetup.tsx](./code-snippets/step3/AcsSetup.tsx)
+
 ### 会議への参加 UI の作成
 
 ここまでの手順でグループ通話やチャットを行うために必用な下準備は完了しました。最後に Azure Communication Services の UI ライブラリを使って会議参加前から会議中の UI を作成します。
@@ -667,7 +671,9 @@ const callWithChat = () => {
 }
 ```
 
-`AzureCommunicationCallWithChatAdapterArgs` を元に `useAzureCommunicationCallWithChatAdapter` を使って `adapter` を作成します。この `adapter` を UI ライブラリの `CallWithChatComposite` に渡すことで会議用の UI が表示されます。
+`useAzureCommunicationCallWithChatAdapter` と `CallWithChatComposite` は `import` が必用なので Visual Studio Code を使って追加してください。
+
+このコードでは `AzureCommunicationCallWithChatAdapterArgs` を元に `useAzureCommunicationCallWithChatAdapter` を使って `adapter` を作成します。この `adapter` を UI ライブラリの `CallWithChatComposite` に渡すことで会議用の UI が表示されます。
 
 ### 動作確認
 
@@ -683,6 +689,7 @@ Azure Communication Services のグループ通話の動作は以下の手順で
    2. トピックに「Test 用の会議」と入力
    3. 「会議を作成」ボタンを選択
    4. 以下のような表示になっていることを確認
+      
       ![](images/2022-10-20-15-53-58.png)
 3. 右側のブラウザーで以下の操作を行います
    1. 表示名に「Test user 2」と入力
@@ -695,6 +702,7 @@ Azure Communication Services のグループ通話の動作は以下の手順で
 5. 両方のブラウザーで「会議への参加」ボタンを押して次の画面でデバイスの選択と **マイクをミュート** にして「Start call」ボタンを選択
    - 初めて表示する場合はマイクやカメラへのアクセスが求められるので許可を選択してください
 6. グループ通話が開始されるので、チャットや画面共有などが動くことを確認してください
+   
    ![](images/2022-10-20-16-01-22.png)
 7. マイクの動作を確認する場合は、音声の出力はかならずイヤフォンやヘッドフォンで行いハウリングが起きないように注意してください
 
