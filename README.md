@@ -21,7 +21,7 @@ Azure Communication Services の UI ライブラリを使用して通話やチ�
   - https://nodejs.org/ja/
 - Visual Studio Code
   - https://azure.microsoft.com/ja-jp/products/visual-studio-code/
-  - Visual Studio Code 以外のエディターでも実施可能ですが、適宜読み替えを行ってください。
+  - Visual Studio Code 以外のエディターでも実施可能ですが、その場合は適宜読み替えを行ってください。
 - Azure サブスクリプション
   - Azure Communication Services を作成していること
   - ラボ 01 から実施している場合はラボ 01 で作成した Azure Communication Services をそのまま利用してください
@@ -35,8 +35,6 @@ Azure ポータルにサインインをして今回作成したリソースグ�
 ![](images/2022-10-18-12-03-13.png)
 
 リソースグループ削除時にリソースグループの中のリソースも全て削除されて課金も行われなくなります。
-
-
 
 ## ラボ完了後
 

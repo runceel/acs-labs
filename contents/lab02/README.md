@@ -80,7 +80,7 @@ Azure Communication Services の UI ライブラリを行いグループ通話�
    ```
 3. `npm start` を実行してビルド エラーが発生せずに React のアプリが起動することを確認してください。
 
-以上で React v17 へのダウングレードの手順は終了です。
+以上で React v17 へのダウングレードは完了です。
 
 ## Azure Communication Services のライブラリの追加
 
@@ -127,7 +127,7 @@ Azure Communication Services の UI ライブラリを行いグループ通話�
 
 今回作成するアプリケーションは、Azure Communication Services のユーザー ID の作成やトークンの取得、チャットスレッドの作成から参加者の追加までをクライアント サイドで制御を行うアプリケーションになります。
 
-チャット付きの会議に参加するための UI として `CallWithChatComposite` というコンポーネントを使用します。このコンポーネントは `AzureCommunicationCallWithChatAdapterArgs` という以下のように定義されている型を使って会議に参加して通話したりチャットをしたりすることが出来る完全な UI を持ったコンポーネントになります。
+チャット付きの会議に参加するための UI として `CallWithChatComposite` というコンポーネントを使用します。このコンポーネントは会議に参加して通話したりチャットをしたりすることが出来る完全な UI と機能を持ったコンポーネントになります。このコンポーネントを使用するためには `AzureCommunicationCallWithChatAdapterArgs` という型に定義されている情報を用意する必要があります。`AzureCommunicationCallWithChatAdapterArgs` の定義は以下のようになっています。
 
 ```ts
 export declare type AzureCommunicationCallWithChatAdapterArgs = {
@@ -138,6 +138,8 @@ export declare type AzureCommunicationCallWithChatAdapterArgs = {
     locator: CallAndChatLocator | TeamsMeetingLinkLocator;
 };
 ```
+
+まずは、この `AzureCommunicationCallWithChatAdapterArgs` を作るために必要な情報を設定する画面を作成します。その後 `CallWithChatComposite` を表示する画面を作成します。
 
 ### 全体の大枠を作成する
 
@@ -151,7 +153,6 @@ import './App.css';
 import {
   AzureCommunicationCallWithChatAdapterArgs,
   COMPONENT_LOCALE_JA_JP,
-  darkTheme,
   FluentThemeProvider,
   LocalizationProvider
 } from '@azure/communication-react';
@@ -198,11 +199,13 @@ export default App;
 
 > **Note**
 > 
-> `LocalizationProvider` は Azure Communication Services の UI ライブラリの表示言語を切り替えるためのコンポーネントです。上記のコードのように `locale={COMPONENT_LOCALE_JA_JP}' を指定することで日本語表示にすることが出来ます。指定しない場合は英語表記になります。
+> `LocalizationProvider` は Azure Communication Services の UI ライブラリの表示言語を切り替えるためのコンポーネントです。上記のコードのように `locale={COMPONENT_LOCALE_JA_JP}` を指定することで日本語表示にすることが出来ます。指定しない場合は英語表記になります。
 
 `npm start` をして画面を表示すると以下のようになります。
 
 ![](images/2022-10-19-14-45-19.png)
+
+この後の手順で、ここに画面を作りこんでいきます。
 
 ### Azure Communication Services のキーの設定
 
@@ -210,7 +213,7 @@ Azure Communication Services にアクセスするために必要なキーの情
 
 ![](images/2022-10-19-17-22-36.png)
 
-.env.local というファイルをアプリのルートフォルダー (ここの手順と同じパスに作成している場合は c:\labs\acs-sample-app) に作成して以下の内容に編集してください。
+.env.local というファイルをアプリのルートフォルダー (ここの手順と同じパスに作成している場合は c:\labs\acs-sample-app) に作成して以下の内容に変更してください。
 
 ```
 REACT_APP_ACS_ENDPOINT=先ほどコピーしたエンドポイントの値
@@ -219,7 +222,7 @@ REACT_APP_ACS_CONNECTION_STRING=先ほどコピーした接続文字列の値
 
 ### 会議へ参加するための情報を入力するためのコンポーネントの定義
 
-src/components/AcsSetup.tsx というファイルと src/components/AcsSetup.css というファイルを作成します。
+src/components/AcsSetup.tsx というファイルと src/components/AcsSetup.css というファイルを作成してください。ここに各種項目を追加して画面を作成します。
 
 #### ユーザー ID とアクセス トークンの取得
 
@@ -306,7 +309,7 @@ src/components/AcsSetup.css を開いて以下のように変更します。
 }
 ```
 
-そして src/App.tsx を開いて 18 行目にある setup の定義を変更して作成した AcsSetup コンポーネントを表示するように変更します。
+そして src/App.tsx を開いて 18 行目にある setup の定義を変更して作成した AcsSetup コンポーネントを表示するように変更します。App.tsx で `AcsSetup` コンポーネントを使うためには `import` の追加が必用になるので、Visual Studio Code の機能を使って `import` を追加してください。
 
 ```tsx
   const setup = () => {
@@ -314,7 +317,7 @@ src/components/AcsSetup.css を開いて以下のように変更します。
   }
 ```
 
-この状態で実行すると、以下のように Azure Communication Service のユーザー ID とトークンが取得され画面に表示されます。
+この状態で実行すると、以下のように Azure Communication Service のユーザー ID とトークンが取得され画面に表示されます。`npm start` を停止せずに起動し続けている場合は `.env.local` など一部の値が再読み込みされないため `npm start` を再起動してください。
 
 ![](images/2022-10-19-18-19-47.png)
 
@@ -326,7 +329,7 @@ src/components/AcsSetup.tsx の `AcsSetup` 関数の先頭の `useState` の最�
 
 ```tsx
 // 表示名
-const [displayName, setDisplayName] useState('');
+const [displayName, setDisplayName] = useState('');
 ```
 
 画面作成に使用するコンポーネントを `import` で追加します。ファイルの先頭の `import` 文に以下の 1 行を追加してください。
@@ -361,7 +364,9 @@ return (
 );
 ```
 
-src/components/AcsSetup.css に以下の定義を追加します。
+`FormEvent` は `import` が必用になるので、Visual Studio Code の機能で追加してください。
+
+そして src/components/AcsSetup.css に以下の定義を追加します。
 
 ```css
 form .input {
@@ -384,7 +389,7 @@ npm install uuid --legacy-peer-deps
 npm install --save-dev @types/uuid --legacy-peer-deps
 ```
 
-src/components/AcsSetup.tsx の import に以下の 1 行を追加します。uuid を生成するための機能を追加をしています。
+src/components/AcsSetup.tsx の import に以下の 1 行を追加します。uuid を生成するための関数を読み込んでいます。
 
 ```tsx
 import { v4 as uuidv4 } from 'uuid';
@@ -462,6 +467,12 @@ const createGroupMeeting = async () => {
     }
 };
 ```
+
+`ChatClient` と `fromFlatCommunicationIdentifier` は `import` が必用なので Visual Studio Code を使って `import` を追加してください。
+
+この時点の AcsSetup.tsx のファイルは以下のようになります。
+
+[AcsSetup.tsx](./code-snippets/step1/AcsSetup.tsx)
 
 ここまでの状態で画面は以下のようになります。表示名とトピックを入力して会議を作成ボタンを押すと以下のようにグループ IDとチャット スレッド ID が表示されます。
 
